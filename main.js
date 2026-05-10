@@ -161,6 +161,9 @@ async function processOCR(file, card, src){
         const lines = raw.split("\n");
         let formatted = [];
 
+        // Regex kiểm tra xem dòng trước có kết thúc bằng dấu câu ngắt đoạn hay không
+        const isSentenceEnd = /[.!?:"”'’\])]\s*$/;
+
         for(let line of lines){
             line = line.trim();
             if(!line){ formatted.push(""); continue; }
@@ -171,19 +174,36 @@ async function processOCR(file, card, src){
             const isLowercase = /^[a-zàáạảãăắằẳẵặâấầẩẫậèéẹẻẽêếềểễệìíịỉĩòóọỏõôốồổỗộơớờởỡợùúụủũưứừửữựỳýỵỷỹđ]/.test(firstChar);
             const isUppercase = /^[A-ZÀÁẠẢÃĂẮẰẲẴẶÂẤẦẨẪẬÈÉẸẺẼÊẾỀỂỄỆÌÍỊỈĨÒÓỌỎÕÔỐỒỔỖỘƠỚỜỞỠỢÙÚỤỦŨƯỨỪỬỮỰỲÝỴỶỸĐ]/.test(firstChar);
 
-            if(isLowercase && formatted.length){
-                let lastIndex = formatted.length - 1;
-                while (lastIndex >= 0 && formatted[lastIndex] === "") lastIndex--; 
-                if (lastIndex >= 0) {
-                    formatted[lastIndex] = formatted[lastIndex] + " " + line;
-                    continue;
-                }
+            // Tìm index của dòng text hợp lệ gần nhất (bỏ qua các dòng trống)
+            let lastValidIndex = formatted.length - 1;
+            while (lastValidIndex >= 0 && formatted[lastValidIndex] === "") {
+                lastValidIndex--;
             }
 
-            if(isUppercase && formatted.length){
-                const last = formatted[formatted.length - 1];
-                if(last !== "") formatted.push("");
+            if (lastValidIndex >= 0) {
+                const lastValidLine = formatted[lastValidIndex];
+
+                // Nếu dòng hiện tại bắt đầu bằng chữ thường -> Nối tiếp vào dòng trước
+                if (isLowercase) {
+                    formatted[lastValidIndex] = lastValidLine + " " + line;
+                    continue;
+                }
+
+                // Nếu dòng hiện tại bắt đầu bằng chữ in hoa
+                if (isUppercase) {
+                    if (!isSentenceEnd.test(lastValidLine)) {
+                        // Dòng trước CHƯA kết thúc bằng dấu câu -> Nối tiếp câu
+                        formatted[lastValidIndex] = lastValidLine + " " + line;
+                        continue;
+                    } else {
+                        // Dòng trước ĐÃ có dấu câu (chấm, hỏi, than...) -> Ngắt đoạn mới
+                        if (formatted[formatted.length - 1] !== "") {
+                            formatted.push("");
+                        }
+                    }
+                }
             }
+            
             formatted.push(line);
         }
 
