@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+        <title>OCR Reader Pro - Tư Ngữ Audio</title>
+
+        <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+        <div class="app">
+            <div class="topbar">
+                <div class="logo-wrap">
+                    <div class="logo">OCR</div>
+                    <div>
+                        <div class="title">OCR Reader Pro</div>
+                        <div class="subtitle">Model siêu chuẩn (Tessdata Best) • Ctrl + V • Fix Ngoặc kép AI</div>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <div class="counter" id="counter">0 / 20 ảnh</div>
+                    <button class="clear-btn" id="clearBtn">Xóa tất cả</button>
+                </div>
+            </div>
+
+            <div class="main">
+                <div class="sidebar">
+                    <div class="sidebar-title">Upload ảnh</div>
+                    <div class="sidebar-desc">Kéo thả ảnh, paste trực tiếp hoặc tải ảnh lên để OCR văn bản.</div>
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-icon">🖼️</div>
+                        <div class="upload-title">Drop ảnh vào đây</div>
+                        <div class="upload-sub">PNG, JPG, WEBP...</div>
+                        <label class="upload-button">
+                            Chọn ảnh
+                            <input type="file" id="fileInput" accept="image/*" multiple>
+                        </label>
+                    </div>
+                    <div class="tip-box">
+                        <div class="tip-title">Tính năng Update</div>
+                        <div class="tip">
+                            • <b>Đã Fix lỗi mất dấu ngoặc kép</b><br>
+                            • Sử dụng Tessdata_Best chuẩn 99%<br>
+                            • Giữ paragraph thông minh<br>
+                            • Nhận diện chuẩn dấu ngoặc kép<br>
+                            • Tự format xuống dòng thông minh
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <div class="empty" id="empty">
+                        <div class="empty-icon">📄</div>
+                        <div class="empty-title">Chưa có ảnh nào</div>
+                        <div class="empty-sub">Tải ảnh lên hoặc Ctrl + V để bắt đầu nhận diện AI.</div>
+                    </div>
+                    <div class="grid" id="grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL -->
+        <div class="modal" id="modal">
+            <div class="modal-box">
+                <div class="modal-left">
+                    <img id="modalImage">
+                </div>
+                <div class="modal-right">
+                    <div class="modal-header">
+                        <h2>OCR Result</h2>
+                        <button class="close" id="closeModal">✕</button>
+                    </div>
+                    <div class="modal-text" id="modalText"></div>
+                    <div class="modal-actions">
+                        <button class="btn copy-btn" id="modalCopy">Copy text</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="main.js?v=2026.05.09"></script>
+    </body>
+</html>
