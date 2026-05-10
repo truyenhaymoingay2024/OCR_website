@@ -17,10 +17,11 @@
         <div class="app">
             <div class="topbar">
                 <div class="logo-wrap">
-                    <div class="logo">OCR</div>
-                    <div>
+                    <div class="logo">🦉</div>
+                    <div class="title-wrap">
                         <div class="title">OCR Reader Pro</div>
-                        <div class="subtitle">Model siêu chuẩn (Tessdata Best) • Ctrl + V • Fix Ngoặc kép AI</div>
+                        <div class="version">v.24.05.10</div>
+                        <div class="tn-badge">Tư Ngữ Audio</div>
                     </div>
                 </div>
                 <div class="top-actions">
@@ -32,33 +33,24 @@
             <div class="main">
                 <div class="sidebar">
                     <div class="sidebar-title">Upload ảnh</div>
-                    <div class="sidebar-desc">Kéo thả ảnh, paste trực tiếp hoặc tải ảnh lên để OCR văn bản.</div>
+                    <div class="sidebar-desc">Kéo thả, paste trực tiếp (Ctrl + V) hoặc tải ảnh lên để nhận diện văn bản.</div>
+                    
                     <div class="upload-zone" id="dropZone">
                         <div class="upload-icon">🖼️</div>
                         <div class="upload-title">Drop ảnh vào đây</div>
-                        <div class="upload-sub">PNG, JPG, WEBP...</div>
+                        <div class="upload-sub">Hỗ trợ PNG, JPG, WEBP...</div>
                         <label class="upload-button">
-                            Chọn ảnh
+                            Chọn ảnh từ máy
                             <input type="file" id="fileInput" accept="image/*" multiple>
                         </label>
-                    </div>
-                    <div class="tip-box">
-                        <div class="tip-title">Tính năng Update</div>
-                        <div class="tip">
-                            • <b>Đã Fix lỗi mất dấu ngoặc kép</b><br>
-                            • Sử dụng Tessdata_Best chuẩn 99%<br>
-                            • Giữ paragraph thông minh<br>
-                            • Nhận diện chuẩn dấu ngoặc kép<br>
-                            • Tự format xuống dòng thông minh
-                        </div>
                     </div>
                 </div>
 
                 <div class="content">
                     <div class="empty" id="empty">
-                        <div class="empty-icon">📄</div>
+                        <div class="empty-icon">📸</div>
                         <div class="empty-title">Chưa có ảnh nào</div>
-                        <div class="empty-sub">Tải ảnh lên hoặc Ctrl + V để bắt đầu nhận diện AI.</div>
+                        <div class="empty-sub">Hãy tải ảnh lên hoặc nhấn Ctrl + V để AI bắt đầu quét văn bản ngay nhé.</div>
                     </div>
                     <div class="grid" id="grid"></div>
                 </div>
@@ -69,21 +61,21 @@
         <div class="modal" id="modal">
             <div class="modal-box">
                 <div class="modal-left">
-                    <img id="modalImage">
+                    <img id="modalImage" alt="Bản xem trước">
                 </div>
                 <div class="modal-right">
                     <div class="modal-header">
-                        <h2>OCR Result</h2>
+                        <h2>Kết quả OCR</h2>
                         <button class="close" id="closeModal">✕</button>
                     </div>
                     <div class="modal-text" id="modalText"></div>
                     <div class="modal-actions">
-                        <button class="btn copy-btn" id="modalCopy">Copy text</button>
+                        <button class="btn copy-btn" id="modalCopy">Copy toàn bộ text</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <script src="main.js?v=2026.05.09"></script>
+        <script src="main.js"></script>
     </body>
 </html>
