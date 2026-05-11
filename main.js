@@ -15,44 +15,90 @@ const modalCopy = document.getElementById("modalCopy");
 let total = 0;
 let currentModalText = "";
 
+/* BIẾN GLOBAL CHO TESSERACT ĐỂ TỐI ƯU HIỆU SUẤT */
+let globalWorker = null;
+let currentProgressHandler = null; // Dùng để định tuyến thanh % progress cho đúng thẻ card
+
 updateCounter();
 
-/* EVENTS */
-fileInput.addEventListener("change", e=>{ handleFiles([...e.target.files]); });
+/* ==========================================
+   EVENTS (SỰ KIỆN)
+========================================== */
+fileInput.addEventListener("change", e => { handleFiles([...e.target.files]); });
 
-document.addEventListener("paste", e=>{
+document.addEventListener("paste", e => {
     const items = [...e.clipboardData.items];
     const images = items.filter(i => i.type.startsWith("image/")).map(i => i.getAsFile());
-    if(images.length) handleFiles(images);
+    if (images.length) handleFiles(images);
 });
 
-dropZone.addEventListener("dragover", e=>{ e.preventDefault(); dropZone.classList.add("drag"); });
-dropZone.addEventListener("dragleave", ()=>{ dropZone.classList.remove("drag"); });
-dropZone.addEventListener("drop", e=>{
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag"); });
+dropZone.addEventListener("dragleave", () => { dropZone.classList.remove("drag"); });
+dropZone.addEventListener("drop", e => {
     e.preventDefault(); dropZone.classList.remove("drag");
     const files = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/"));
     handleFiles(files);
 });
 
-clearBtn.addEventListener("click", ()=>{
-    grid.innerHTML = ""; total = 0; updateCounter(); toggleEmpty();
+clearBtn.addEventListener("click", () => {
+    // FIX MEMORY LEAK: Thu hồi toàn bộ ObjectURL của ảnh trước khi xóa thẻ img
+    document.querySelectorAll('.preview img').forEach(img => {
+        if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+    });
+    
+    grid.innerHTML = ""; 
+    total = 0; 
+    updateCounter(); 
+    toggleEmpty();
 });
 
-closeModal.addEventListener("click", ()=>{ modal.classList.remove("active"); });
-modal.addEventListener("click", e=>{ if(e.target === modal) modal.classList.remove("active"); });
+closeModal.addEventListener("click", () => { modal.classList.remove("active"); });
+modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("active"); });
 
-modalCopy.addEventListener("click", ()=>{
+modalCopy.addEventListener("click", () => {
     navigator.clipboard.writeText(currentModalText);
     modalCopy.innerText = "Đã copy";
-    setTimeout(()=>{ modalCopy.innerText = "Copy text"; },1500);
+    setTimeout(() => { modalCopy.innerText = "Copy text"; }, 1500);
 });
 
-/* PREPROCESS IMAGE */
+
+/* ==========================================
+   QUẢN LÝ TESSERACT WORKER (TỐI ƯU HÓA)
+========================================== */
+async function getWorker() {
+    // Chỉ khởi tạo 1 lần duy nhất, dùng chung cho tất cả ảnh
+    if (!globalWorker) {
+        globalWorker = await Tesseract.createWorker("vie", 1, {
+            langPath: "https://tessdata.projectnaptha.com/4.0.0_best",
+            logger: m => {
+                // Gọi callback động để cập nhật UI cho thẻ card hiện tại
+                if (currentProgressHandler) currentProgressHandler(m);
+            }
+        });
+
+        // TỐI ƯU CẤU HÌNH TESSERACT
+        await globalWorker.setParameters({
+            tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+            tessedit_char_whitelist: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ!@#$%^&*()_+-=[]{};':\"“”‘’,./<>? \n",
+            user_defined_dpi: '300'
+        });
+    }
+    return globalWorker;
+}
+
+
+/* ==========================================
+   PREPROCESS IMAGE (TIỀN XỬ LÝ ẢNH)
+========================================== */
 function preprocessImage(file) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const img = new Image();
-        img.src = URL.createObjectURL(file);
+        const objUrl = URL.createObjectURL(file); // Tạo blob url tạm
+        
         img.onload = () => {
+            // FIX MEMORY LEAK: Giải phóng bộ nhớ ngay khi load xong vào Image object
+            URL.revokeObjectURL(objUrl);
+
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -67,7 +113,6 @@ function preprocessImage(file) {
             let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let data = imgData.data;
             
-            // Giảm contrast xuống 45 (cũ là 60) để tránh làm đứt/mờ nét mỏng của dấu ngoặc kép (" ")
             const contrast = 45; 
             const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
@@ -82,19 +127,27 @@ function preprocessImage(file) {
             ctx.putImageData(imgData, 0, 0);
             canvas.toBlob(blob => { resolve(blob); }, 'image/png', 1.0);
         };
+        img.onerror = reject;
+        img.src = objUrl;
     });
 }
 
-/* OCR */
+
+/* ==========================================
+   OCR LOGIC (XỬ LÝ CHÍNH)
+========================================== */
 async function handleFiles(files){
     const remain = MAX_FILES - total;
     if(remain <= 0){ alert("Đã đạt tối đa 20 ảnh"); return; }
-    files = files.slice(0,remain);
+    files = files.slice(0, remain);
 
+    // Chạy tuần tự từng ảnh để tránh nghẽn RAM và cho phép dùng chung 1 Worker
     for(const file of files){
         total++;
-        updateCounter(); toggleEmpty();
-        const src = URL.createObjectURL(file);
+        updateCounter(); 
+        toggleEmpty();
+        
+        const src = URL.createObjectURL(file); // Cái này giữ lại cho UI
         const card = createCard(src);
         grid.prepend(card);
 
@@ -107,12 +160,12 @@ function createCard(src){
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-        <div class="preview"><img src="${src}"><div class="badge">OCR...</div></div>
+        <div class="preview"><img src="${src}"><div class="badge">Chờ...</div></div>
         <div class="body">
-            <div class="text-box">Đang xử lý văn bản AI...</div>
+            <div class="text-box">Đang đợi tới lượt xử lý...</div>
             <div class="loading">
                 <div class="loading-bar"><div class="loading-progress"></div></div>
-                <div class="loading-text">Đang khởi tạo OCR...</div>
+                <div class="loading-text">Đang xếp hàng...</div>
             </div>
             <div class="actions">
                 <button class="btn copy-btn">Copy text</button>
@@ -131,29 +184,37 @@ async function processOCR(file, card, src){
     const copyBtn = card.querySelector(".copy-btn");
     const openBtn = card.querySelector(".open-btn");
 
-    try{
-        const worker = await Tesseract.createWorker("vie", 1, {
-            langPath: "https://tessdata.projectnaptha.com/4.0.0_best",
-            logger: m => {
-                if(m.status === "recognizing text"){
-                    const percent = Math.floor(m.progress * 100);
-                    progress.style.width = percent + "%";
-                    badge.innerText = percent + "%";
-                    loadingText.innerText = "Đang quét văn bản... " + percent + "%";
-                }
+    try {
+        badge.innerText = "OCR...";
+        textBox.textContent = "AI đang quét văn bản...";
+        
+        // Cập nhật hàm xử lý Progress cho Cụm Card hiện tại
+        currentProgressHandler = (m) => {
+            // Đảm bảo card vẫn tồn tại (nhỡ người dùng bấm nút Clear giữa chừng)
+            if(!document.contains(card)) return;
+
+            if (m.status === "recognizing text") {
+                const percent = Math.floor(m.progress * 100);
+                progress.style.width = percent + "%";
+                badge.innerText = percent + "%";
+                loadingText.innerText = "Đang quét... " + percent + "%";
+            } else if (m.status.includes("loading") || m.status.includes("initializing")) {
+                loadingText.innerText = "Đang tải Core AI (chỉ tốn lần đầu)...";
             }
-        });
+        };
 
-        // TỐI ƯU CẤU HÌNH TESSERACT (Đã thêm ký tự ngoặc kép vào whitelist)
-        await worker.setParameters({
-            tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-            // ĐÃ BỔ SUNG: “”‘’ vào danh sách whitelist để AI không bị cấm nhận diện ngoặc kép
-            tessedit_char_whitelist: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ!@#$%^&*()_+-=[]{};':\"“”‘’,./<>? \n",
-            user_defined_dpi: '300'
-        });
+        // Lấy Worker (Nếu có rồi nó sẽ trả về ngay lập tức, bỏ qua bước khởi tạo)
+        const worker = await getWorker();
 
+        // Kiểm tra lại lần nữa lỡ người dùng xóa thẻ trong lúc đợi Worker tải
+        if(!document.contains(card)) return;
+
+        // Bắt đầu nhận diện
+        loadingText.innerText = "Bắt đầu trích xuất...";
         const result = await worker.recognize(file);
-        await worker.terminate();
+        
+        // Reset handler để không bị trùng lặp ở ảnh sau
+        currentProgressHandler = null;
 
         /* SMART FORMAT TỐI ƯU HÓA */
         let raw = result.data.text || "";
@@ -161,7 +222,6 @@ async function processOCR(file, card, src){
         const lines = raw.split("\n");
         let formatted = [];
 
-        // Regex kiểm tra xem dòng trước có kết thúc bằng dấu câu ngắt đoạn hay không
         const isSentenceEnd = /[.!?:"”'’\])]\s*$/;
 
         for(let line of lines){
@@ -174,7 +234,6 @@ async function processOCR(file, card, src){
             const isLowercase = /^[a-zàáạảãăắằẳẵặâấầẩẫậèéẹẻẽêếềểễệìíịỉĩòóọỏõôốồổỗộơớờởỡợùúụủũưứừửữựỳýỵỷỹđ]/.test(firstChar);
             const isUppercase = /^[A-ZÀÁẠẢÃĂẮẰẲẴẶÂẤẦẨẪẬÈÉẸẺẼÊẾỀỂỄỆÌÍỊỈĨÒÓỌỎÕÔỐỒỔỖỘƠỚỜỞỠỢÙÚỤỦŨƯỨỪỬỮỰỲÝỴỶỸĐ]/.test(firstChar);
 
-            // Tìm index của dòng text hợp lệ gần nhất (bỏ qua các dòng trống)
             let lastValidIndex = formatted.length - 1;
             while (lastValidIndex >= 0 && formatted[lastValidIndex] === "") {
                 lastValidIndex--;
@@ -183,27 +242,22 @@ async function processOCR(file, card, src){
             if (lastValidIndex >= 0) {
                 const lastValidLine = formatted[lastValidIndex];
 
-                // Nếu dòng hiện tại bắt đầu bằng chữ thường -> Nối tiếp vào dòng trước
                 if (isLowercase) {
                     formatted[lastValidIndex] = lastValidLine + " " + line;
                     continue;
                 }
 
-                // Nếu dòng hiện tại bắt đầu bằng chữ in hoa
                 if (isUppercase) {
                     if (!isSentenceEnd.test(lastValidLine)) {
-                        // Dòng trước CHƯA kết thúc bằng dấu câu -> Nối tiếp câu
                         formatted[lastValidIndex] = lastValidLine + " " + line;
                         continue;
                     } else {
-                        // Dòng trước ĐÃ có dấu câu (chấm, hỏi, than...) -> Ngắt đoạn mới
                         if (formatted[formatted.length - 1] !== "") {
                             formatted.push("");
                         }
                     }
                 }
             }
-            
             formatted.push(line);
         }
 
@@ -211,71 +265,57 @@ async function processOCR(file, card, src){
         text = text.replace(/\n{3,}/g,"\n\n");
         text = text.replace(/ll/g, "ll");
 
-        /* ========================================================= */
-        /* THUẬT TOÁN HẬU XỬ LÝ (POST-PROCESSING) CHUYÊN TRỊ DẤU NGOẶC */
-        /* ========================================================= */
-        
-        // 1. Dọn dẹp rác AI tự sinh ra do lỗi đọc ngoặc kép (như ?? *** 1 x***)
+        /* HẬU XỬ LÝ (POST-PROCESSING) DẤU NGOẶC KÉP */
         text = text.replace(/\?\?\s*\*\*\*\s*\d*\s*[a-zA-Z*]+/gi, '”'); 
         text = text.replace(/([.!?])\s*\?\?+$/gm, '$1”'); 
-
-        // 2. Chuyển đổi toàn bộ ngoặc kép "" thường thành ngoặc kép thông minh “ ” cho đẹp
         text = text.replace(/(^|\s)"/g, '$1“');
         text = text.replace(/"(\s|$|[.,!?])/g, '”$1');
 
-        // 3. Quét thông minh: Tự động đóng ngoặc kép nếu phát hiện đầu câu mở ngoặc nhưng cuối câu quên đóng
         let paragraphs = text.split('\n\n');
         for(let i=0; i<paragraphs.length; i++) {
             let p = paragraphs[i].trim();
             if(!p) continue;
 
-            // Đếm số lượng ngoặc mở và đóng trong đoạn
             let openQuotes = (p.match(/“/g) || []).length;
             let closeQuotes = (p.match(/”/g) || []).length;
 
-            // Nếu số mở ngoặc nhiều hơn đóng ngoặc -> AI quên đóng ngoặc
             if(openQuotes > closeQuotes) {
-                // Nếu câu kết thúc bằng dấu câu (. ? !) thì nhét ngoặc kép vào sau nó
-                if(/[.!?]$/.test(p)) {
-                    paragraphs[i] = p + '”';
-                } else {
-                    // Nếu không có dấu câu thì cứ nhét ngoặc kép vào cuối
-                    paragraphs[i] = p + '”';
-                }
+                if(/[.!?]$/.test(p)) paragraphs[i] = p + '”';
+                else paragraphs[i] = p + '”';
             }
         }
-        text = paragraphs.join('\n\n');
-        /* ========================================================= */
+        text = paragraphs.join('\n\n').trim();
+        /* ======================================= */
 
-        text = text.trim();
-        if(!text) text = "Không tìm thấy văn bản.";
+        if(!text) text = "Không tìm thấy văn bản nào.";
 
         textBox.textContent = text;
         badge.innerText = "Hoàn tất";
         loadingText.innerText = "Đã trích xuất xong";
         progress.style.width = "100%";
 
-        copyBtn.addEventListener("click", e=>{
+        copyBtn.addEventListener("click", e => {
             e.stopPropagation();
             navigator.clipboard.writeText(text);
             copyBtn.innerText = "Đã copy";
-            setTimeout(()=>{ copyBtn.innerText = "Copy text"; },1500);
+            setTimeout(()=>{ copyBtn.innerText = "Copy text"; }, 1500);
         });
 
-        const openModal = ()=>{
+        const openModal = () => {
             modalImage.src = src; 
             modalText.textContent = text;
             currentModalText = text;
             modal.classList.add("active");
         };
 
-        openBtn.addEventListener("click", e=>{ e.stopPropagation(); openModal(); });
+        openBtn.addEventListener("click", e => { e.stopPropagation(); openModal(); });
         card.addEventListener("click", openModal);
 
     } catch(err) {
         console.error(err);
+        if(!document.contains(card)) return; // Tránh báo lỗi nếu thẻ đã bị xóa
         badge.innerText = "Lỗi";
-        textBox.textContent = "Không thể OCR ảnh này";
+        textBox.textContent = "Không thể đọc văn bản từ ảnh này.";
         loadingText.innerText = "OCR thất bại";
     }
 }
