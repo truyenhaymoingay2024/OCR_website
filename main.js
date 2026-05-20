@@ -11,6 +11,7 @@ const modalImage = document.getElementById("modalImage");
 const modalText = document.getElementById("modalText");
 const closeModal = document.getElementById("closeModal");
 const modalCopy = document.getElementById("modalCopy");
+const downloadAllBtn = document.getElementById("downloadAllBtn");
 
 let total = 0;
 let currentModalText = "";
@@ -290,6 +291,7 @@ async function processOCR(file, card, src){
         if(!text) text = "Không tìm thấy văn bản nào.";
 
         textBox.textContent = text;
+        card.dataset.finalText = text; // LƯU TEXT ĐỂ SAU NÀY TẢI VỀ
         badge.innerText = "Hoàn tất";
         loadingText.innerText = "Đã trích xuất xong";
         progress.style.width = "100%";
@@ -318,6 +320,58 @@ async function processOCR(file, card, src){
         textBox.textContent = "Không thể đọc văn bản từ ảnh này.";
         loadingText.innerText = "OCR thất bại";
     }
+}
+
+/* ==========================================
+   TÍNH NĂNG TẢI TẤT CẢ TEXT
+========================================== */
+downloadAllBtn.addEventListener("click", () => {
+    // Lấy tất cả các thẻ card hiện có
+    const cards = Array.from(document.querySelectorAll('.card'));
+    
+    if (cards.length === 0) return;
+
+    let combinedText = "";
+    let imgCount = 1;
+
+    // Do ảnh mới thêm được dùng grid.prepend() (nằm ở trên cùng)
+    // -> Nên ta dùng .reverse() để lật ngược mảng, lấy từ cũ nhất đến mới nhất
+    cards.reverse().forEach(card => {
+        const text = card.dataset.finalText;
+        if (text) {
+            // (Tùy chọn) Thêm dải phân cách giữa các ảnh để dễ đọc
+            combinedText += `\n--- [ Văn bản từ ảnh ${imgCount} ] ---\n\n`;
+            combinedText += text + "\n";
+            imgCount++;
+        }
+    });
+
+    if (!combinedText.trim()) {
+        alert("AI đang xử lý, chưa có đoạn text nào hoàn thành. Vui lòng đợi!");
+        return;
+    }
+
+    // Tạo file txt và tự động tải xuống
+    const blob = new Blob([combinedText.trim()], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement("a");
+    a.href = url;
+    // Đặt tên file xuất ra. Bạn có thể chèn thêm ngày giờ nếu muốn
+    a.download = "OCR_TuNguAudio.txt"; 
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    // Dọn dẹp
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+// Cập nhật lại hàm toggleEmpty để Ẩn/Hiện nút tải file cho hợp lý
+function toggleEmpty(){ 
+    empty.style.display = total ? "none" : "flex"; 
+    downloadAllBtn.style.display = total ? "block" : "none"; // Hiện khi có ảnh
 }
 
 /* UI */

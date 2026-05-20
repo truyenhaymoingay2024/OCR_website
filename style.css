@@ -489,6 +489,29 @@ button, input {
     background: #2a3852;
 }
 
+/* Nút Tải Tất Cả Text */
+.download-btn {
+    height: 48px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 14px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.download-btn:hover {
+    background: #4a75e6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(91,140,255,0.3);
+}
+
 .modal-text { 
     flex: 1; 
     overflow: auto; 
