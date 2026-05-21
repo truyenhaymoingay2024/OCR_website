@@ -1,4 +1,4 @@
-const MAX_FILES = 20;
+const MAX_FILES = 50;
 
 const fileInput = document.getElementById("fileInput");
 const dropZone = document.getElementById("dropZone");
@@ -139,7 +139,7 @@ function preprocessImage(file) {
 ========================================== */
 async function handleFiles(files){
     const remain = MAX_FILES - total;
-    if(remain <= 0){ alert("Đã đạt tối đa 20 ảnh"); return; }
+    if(remain <= 0){ alert("Đã đạt tối đa 50 ảnh"); return; }
     files = files.slice(0, remain);
 
     // Chạy tuần tự từng ảnh để tránh nghẽn RAM và cho phép dùng chung 1 Worker
