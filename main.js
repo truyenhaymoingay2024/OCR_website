@@ -12,9 +12,12 @@ const modalText = document.getElementById("modalText");
 const closeModal = document.getElementById("closeModal");
 const modalCopy = document.getElementById("modalCopy");
 const downloadAllBtn = document.getElementById("downloadAllBtn");
+const modalPrev = document.getElementById("modalPrev");
+const modalNext = document.getElementById("modalNext");
 
 let total = 0;
 let currentModalText = "";
+let currentCardElement = null; // Quản lý thẻ ảnh hiện tại đang xem chi tiết
 
 /* BIẾN GLOBAL CHO TESSERACT ĐỂ TỐI ƯU HIỆU SUẤT */
 let globalWorker = null;
@@ -49,6 +52,7 @@ clearBtn.addEventListener("click", () => {
     
     grid.innerHTML = ""; 
     total = 0; 
+    currentCardElement = null;
     updateCounter(); 
     toggleEmpty();
 });
@@ -60,6 +64,28 @@ modalCopy.addEventListener("click", () => {
     navigator.clipboard.writeText(currentModalText);
     modalCopy.innerText = "Đã copy";
     setTimeout(() => { modalCopy.innerText = "Copy text"; }, 1500);
+});
+
+// Điều hướng trong modal bằng nút bấm
+modalPrev.addEventListener("click", e => {
+    e.stopPropagation();
+    navigateModal(-1);
+});
+modalNext.addEventListener("click", e => {
+    e.stopPropagation();
+    navigateModal(1);
+});
+
+// Điều hướng bằng phím tắt
+document.addEventListener("keydown", e => {
+    if (!modal.classList.contains("active")) return;
+    if (e.key === "ArrowLeft") {
+        navigateModal(-1);
+    } else if (e.key === "ArrowRight") {
+        navigateModal(1);
+    } else if (e.key === "Escape") {
+        modal.classList.remove("active");
+    }
 });
 
 
@@ -174,6 +200,16 @@ function createCard(src){
             </div>
         </div>
     `;
+
+    const openBtn = card.querySelector(".open-btn");
+    openBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        openModal(card);
+    });
+    card.addEventListener("click", () => {
+        openModal(card);
+    });
+
     return card;
 }
 
@@ -183,7 +219,6 @@ async function processOCR(file, card, src){
     const progress = card.querySelector(".loading-progress");
     const loadingText = card.querySelector(".loading-text");
     const copyBtn = card.querySelector(".copy-btn");
-    const openBtn = card.querySelector(".open-btn");
 
     try {
         badge.innerText = "OCR...";
@@ -232,8 +267,8 @@ async function processOCR(file, card, src){
             const matchLetter = line.match(/[a-zA-ZÀ-ỹ]/);
             const firstChar = matchLetter ? matchLetter[0] : line.charAt(0);
 
-            const isLowercase = /^[a-zàáạảãăắằẳẵặâấầẩẫậèéẹẻẽêếềểễệìíịỉĩòóọỏõôốồổỗộơớờởỡợùúụủũưứừửữựỳýỵỷỹđ]/.test(firstChar);
-            const isUppercase = /^[A-ZÀÁẠẢÃĂẮẰẲẴẶÂẤẦẨẪẬÈÉẸẺẼÊẾỀỂỄỆÌÍỊỈĨÒÓỌỎÕÔỐỒỔỖỘƠỚỜỞỠỢÙÚỤỦŨƯỨỪỬỮỰỲÝỴỶỸĐ]/.test(firstChar);
+            const isLowercase = /^[a-zàáạảãăắằẳẵặâấầẩẫậèéẹẻẽêềếệểễệìíịỉĩòóọỏõôốồổỗộơớờởỡợùúụủũưứừửữựỳýỵỷỹđ]/.test(firstChar);
+            const isUppercase = /^[A-ZÀÁẠẢÃĂẮẰẲẴẶÂẤẦẨẪẬÈÉẸẺẼÊẾỀỂỄỆÌÍỊỈĨÒÓỌỎÕÔỐỒỔỖỘƠỚỜỔỠỢÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/.test(firstChar);
 
             let lastValidIndex = formatted.length - 1;
             while (lastValidIndex >= 0 && formatted[lastValidIndex] === "") {
@@ -303,15 +338,11 @@ async function processOCR(file, card, src){
             setTimeout(()=>{ copyBtn.innerText = "Copy text"; }, 1500);
         });
 
-        const openModal = () => {
-            modalImage.src = src; 
+        // Nếu người dùng đang mở đúng ảnh này trong modal, cập nhật chữ trực tiếp
+        if (currentCardElement === card && modal.classList.contains("active")) {
             modalText.textContent = text;
             currentModalText = text;
-            modal.classList.add("active");
-        };
-
-        openBtn.addEventListener("click", e => { e.stopPropagation(); openModal(); });
-        card.addEventListener("click", openModal);
+        }
 
     } catch(err) {
         console.error(err);
@@ -319,6 +350,51 @@ async function processOCR(file, card, src){
         badge.innerText = "Lỗi";
         textBox.textContent = "Không thể đọc văn bản từ ảnh này.";
         loadingText.innerText = "OCR thất bại";
+    }
+}
+
+/* ==========================================
+   XỬ LÝ ĐIỀU HƯỚNG VÀ XEM CHI TIẾT
+========================================== */
+function openModal(card) {
+    currentCardElement = card;
+    const imgEl = card.querySelector(".preview img");
+    const textBoxEl = card.querySelector(".text-box");
+    
+    modalImage.src = imgEl ? imgEl.src : "";
+    
+    // Nếu chưa xử lý xong thì hiển thị nội dung chờ tạm thời
+    const text = card.dataset.finalText || textBoxEl.textContent;
+    modalText.textContent = text;
+    currentModalText = text;
+    modal.classList.add("active");
+    
+    updateModalNavButtons();
+}
+
+function updateModalNavButtons() {
+    const cards = Array.from(grid.querySelectorAll(".card"));
+    const index = cards.indexOf(currentCardElement);
+    
+    // Grid sử dụng prepend (ảnh mới nằm đầu). 
+    // - Lùi lại (-1): Đi đến ảnh mới hơn (index - 1)
+    // - Tiến lên (1): Đi đến ảnh cũ hơn (index + 1)
+    modalPrev.style.visibility = index < cards.length - 1 ? "visible" : "hidden";
+    modalNext.style.visibility = index > 0 ? "visible" : "hidden";
+}
+
+function navigateModal(direction) {
+    if (!currentCardElement) return;
+    const cards = Array.from(grid.querySelectorAll(".card"));
+    const index = cards.indexOf(currentCardElement);
+    
+    // Hướng di chuyển: -1 để lùi (ảnh cũ hơn / tiến về cuối mảng), 1 để tiến (ảnh mới hơn / lùi về đầu mảng)
+    // Để trực quan hóa theo thứ tự hiển thị: 
+    // - Bấm nút Trái (prev): Muốn xem ảnh bên trái (ảnh cũ hơn -> index tăng lên)
+    // - Bấm nút Phải (next): Muốn xem ảnh bên phải (ảnh mới hơn -> index giảm đi)
+    let newIndex = index - direction;
+    if (newIndex >= 0 && newIndex < cards.length) {
+        openModal(cards[newIndex]);
     }
 }
 
@@ -339,7 +415,6 @@ downloadAllBtn.addEventListener("click", () => {
     cards.reverse().forEach(card => {
         const text = card.dataset.finalText;
         if (text) {
-            // (Tùy chọn) Thêm dải phân cách giữa các ảnh để dễ đọc
             combinedText += `\n--- [ Văn bản từ ảnh ${imgCount} ] ---\n\n`;
             combinedText += text + "\n";
             imgCount++;
@@ -357,7 +432,6 @@ downloadAllBtn.addEventListener("click", () => {
     
     const a = document.createElement("a");
     a.href = url;
-    // Đặt tên file xuất ra. Bạn có thể chèn thêm ngày giờ nếu muốn
     a.download = "OCR_TuNguAudio.txt"; 
     
     document.body.appendChild(a);
@@ -376,4 +450,3 @@ function toggleEmpty(){
 
 /* UI */
 function updateCounter(){ counter.innerText = `${total} / ${MAX_FILES} ảnh`; }
-function toggleEmpty(){ empty.style.display = total ? "none" : "flex"; }

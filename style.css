@@ -33,9 +33,9 @@ button, input {
 }
 
 .app {
-    width: min(1800px, 96%);
+    width: min(1860px, 96%); /* Nới rộng độ ngang tối đa trên màn hình rộng */
     margin: auto;
-    padding: 30px 0 40px;
+    padding: 24px 0 30px;
 }
 
 /* HEADER */
@@ -140,16 +140,16 @@ button, input {
 /* LAYOUT */
 .main { 
     display: grid; 
-    grid-template-columns: 320px 1fr; 
+    grid-template-columns: 280px 1fr; /* Sidebar gọn gàng hơn cho màn ngang */
     gap: 24px; 
-    align-items: start; /* Để content và sidebar không bị kéo giãn đồng đều theo chiều dọc */
+    align-items: start;
 }
 
 /* SIDEBAR */
 .sidebar { 
     position: sticky; 
     top: 24px; 
-    height: fit-content; /* Sửa lại để chỉ ôm sát nội dung */
+    height: fit-content; 
     background: rgba(17,24,39,0.88); 
     border: 1px solid var(--border); 
     border-radius: 24px; 
@@ -273,7 +273,7 @@ button, input {
 
 .grid { 
     display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Giảm kích thước min của card để hiển thị được nhiều ảnh hơn trên một hàng */
     gap: 20px; 
 }
 
@@ -281,7 +281,7 @@ button, input {
 .card { 
     background: rgba(17,24,39,0.88); 
     border: 1px solid var(--border); 
-    border-radius: 24px; 
+    border-radius: 20px; 
     overflow: hidden; 
     transition: 0.2s; 
     cursor: pointer; 
@@ -297,7 +297,7 @@ button, input {
 }
 
 .preview { 
-    height: 220px; 
+    height: 150px; /* Giảm chiều cao xem trước để có thể theo dõi được nhiều dòng card cùng lúc */
     background: black; 
     overflow: hidden; 
     position: relative; 
@@ -311,13 +311,13 @@ button, input {
 
 .badge { 
     position: absolute; 
-    top: 16px; 
-    right: 16px; 
+    top: 12px; 
+    right: 12px; 
     background: rgba(0,0,0,0.7); 
     backdrop-filter: blur(10px); 
-    padding: 6px 12px; 
-    border-radius: 10px; 
-    font-size: 12px; 
+    padding: 4px 10px; 
+    border-radius: 8px; 
+    font-size: 11px; 
     font-weight: 600;
 }
 
@@ -325,38 +325,38 @@ button, input {
     display: flex; 
     flex-direction: column; 
     flex: 1; 
-    padding: 20px; 
+    padding: 16px; 
 }
 
 .text-box { 
     flex: 1; 
     background: var(--card2); 
     border: 1px solid var(--border); 
-    border-radius: 16px; 
-    padding: 16px; 
+    border-radius: 12px; 
+    padding: 12px; 
     overflow: auto; 
-    font-size: 14px; 
-    line-height: 1.8; 
+    font-size: 13px; 
+    line-height: 1.6; 
     color: #dfe7f4; 
-    min-height: 160px; 
-    max-height: 240px; 
+    min-height: 110px; /* Tinh chỉnh độ cao chữ để cân đối cấu trúc Grid ngang */
+    max-height: 160px; 
     white-space: pre-wrap; 
     word-break: break-word; 
 }
 
-/* Scrollbar tinh chỉnh cho text-box đỡ thô */
-.text-box::-webkit-scrollbar { width: 6px; }
+/* Scrollbar tinh chỉnh cho text-box */
+.text-box::-webkit-scrollbar { width: 5px; }
 .text-box::-webkit-scrollbar-track { background: transparent; }
 .text-box::-webkit-scrollbar-thumb { background: #2a3852; border-radius: 10px; }
 
 .loading { 
-    margin-top: 16px; 
+    margin-top: 12px; 
 }
 
 .loading-bar { 
     width: 100%; 
-    height: 8px; 
-    border-radius: 10px; 
+    height: 6px; 
+    border-radius: 8px; 
     background: #1b2538; 
     overflow: hidden; 
 }
@@ -369,26 +369,26 @@ button, input {
 }
 
 .loading-text { 
-    margin-top: 8px; 
+    margin-top: 6px; 
     color: var(--muted); 
-    font-size: 13px; 
+    font-size: 12px; 
     font-weight: 500;
 }
 
 .actions { 
     display: flex; 
-    gap: 12px; 
-    margin-top: 20px; 
+    gap: 10px; 
+    margin-top: 14px; 
 }
 
 .btn { 
     flex: 1; 
-    height: 44px; 
+    height: 38px; 
     border: none; 
-    border-radius: 12px; 
+    border-radius: 10px; 
     cursor: pointer; 
     font-weight: 600; 
-    font-size: 14px;
+    font-size: 13px;
     transition: 0.2s; 
 }
 
@@ -411,17 +411,17 @@ button, input {
     background: #243047; 
 }
 
-/* MODAL */
+/* MODAL TỐI ƯU HÓA CHO MÀN 16:9 */
 .modal { 
     position: fixed; 
     inset: 0; 
-    background: rgba(0,0,0,0.85); 
+    background: rgba(5, 7, 12, 0.9); 
     display: none; 
     align-items: center; 
     justify-content: center; 
     z-index: 999; 
-    padding: 20px; 
-    backdrop-filter: blur(4px);
+    padding: 30px; 
+    backdrop-filter: blur(8px);
 }
 
 .modal.active { 
@@ -429,35 +429,40 @@ button, input {
 }
 
 .modal-box { 
-    width: min(1600px, 100%); 
+    width: min(1680px, 92vw); 
+    height: 85vh; /* Cố định chiều cao theo tỷ lệ khung hình 16:9 */
     background: #0f1726; 
     border: 1px solid var(--border); 
     border-radius: 24px; 
     display: grid; 
-    grid-template-columns: 1.1fr 1fr; 
+    grid-template-columns: 1fr 1.1fr; /* Tăng độ rộng phần chứa Text kết quả */
     overflow: hidden; 
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
 }
 
 .modal-left { 
-    background: black; 
+    background: #070b13; 
     display: flex; 
-    align-items: flex-start; 
+    align-items: center; 
     justify-content: center; 
-    overflow: auto; 
-    max-height: 85vh; 
+    overflow: hidden; 
+    height: 100%;
+    padding: 24px;
+    border-right: 1px solid var(--border);
 }
 
 .modal-left img { 
     width: 100%; 
-    height: auto; 
-    object-fit: contain; 
+    height: 100%; 
+    object-fit: contain; /* Đảm bảo hình ảnh hiển thị trọn vẹn, không bị mất góc */
+    border-radius: 12px;
 }
 
 .modal-right { 
     display: flex; 
     flex-direction: column; 
-    max-height: 85vh; 
+    height: 100%; 
+    overflow: hidden;
 }
 
 .modal-header { 
@@ -489,6 +494,42 @@ button, input {
     background: #2a3852;
 }
 
+/* NÚT ĐIỀU HƯỚNG TRONG MODAL */
+.nav-btn {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: rgba(17, 24, 39, 0.85);
+    color: white;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+    user-select: none;
+}
+
+.nav-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 0 16px rgba(91,140,255,0.4);
+}
+
+.prev-btn {
+    margin-right: 24px;
+}
+
+.next-btn {
+    margin-left: 24px;
+}
+
 /* Nút Tải Tất Cả Text */
 .download-btn {
     height: 48px;
@@ -514,13 +555,13 @@ button, input {
 
 .modal-text { 
     flex: 1; 
-    overflow: auto; 
-    padding: 24px; 
+    overflow-y: auto; 
+    padding: 30px; 
     color: #dfe7f4; 
     line-height: 1.8; 
     white-space: pre-wrap; 
     word-break: break-word; 
-    font-size: 15px;
+    font-size: 16px; /* Tăng cỡ chữ xem chi tiết giúp dễ đọc thông tin */
 }
 
 .modal-text::-webkit-scrollbar { width: 8px; }
@@ -534,13 +575,45 @@ button, input {
     gap: 12px; 
 }
 
-/* MOBILE */
+/* RESPONSIVE & MOBILE COMPATIBILITY (PREVENT BREAKAGE) */
+@media(max-width: 1200px){
+    .modal {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+    .modal-box { 
+        grid-template-columns: 1fr; 
+        height: 80vh; 
+        width: 100%;
+    }
+    .modal-left { 
+        height: 40%; 
+        border-right: none; 
+        border-bottom: 1px solid var(--border); 
+    }
+    .modal-right { 
+        height: 60%; 
+    }
+    .modal-text { 
+        padding: 20px; 
+        font-size: 15px; 
+    }
+    .nav-btn {
+        position: fixed;
+        bottom: 80px;
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+        z-index: 1000;
+    }
+    .prev-btn { left: 24px; margin-right: 0; }
+    .next-btn { right: 24px; margin-left: 0; }
+}
+
 @media(max-width: 1100px){
     .main { grid-template-columns: 1fr; }
     .sidebar { position: relative; top: 0; }
-    .modal-box { grid-template-columns: 1fr; }
-    .modal-left { max-height: 45vh; }
-    .modal-text { max-height: 40vh; }
 }
 
 @media(max-width: 700px){
@@ -548,5 +621,5 @@ button, input {
     .title { font-size: 22px; }
     .grid { grid-template-columns: 1fr; }
     .actions { flex-direction: column; }
-    .preview { height: 200px; }
+    .preview { height: 180px; }
 }
